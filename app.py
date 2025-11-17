@@ -1,49 +1,87 @@
 import joblib
+import os
 from flask import Flask, request, jsonify
+from dotenv import load_dotenv
+import google.generativeai as genai
 
-# 1. CARREGAR O MODELO
+# --- CONFIGURAÇÃO INICIAL ---
 
+# 1. Carregar variáveis de ambiente
+load_dotenv()
+
+# 2. Configurar a Chave do Gemini
+chave_google = os.getenv("GEMINI_API_KEY")
+if not chave_google:
+    print("ERRO: Chave do Google não encontrada no arquivo .env!")
+else:
+    genai.configure(api_key=chave_google)
+    print("Gemini configurado com sucesso! 🤖")
+
+# 3. Carregar o Modelo Local (Machine Learning Clássico)
 try:
     modelo_prioridade = joblib.load('modelo_prioridade.pkl')
     vetorizador = joblib.load('vetorizador.pkl')
-    print("Modelo e Vetorizador carregados com sucesso!")
+    print("Modelo Local carregado! 🧠")
 except Exception as e:
-    print(f"Erro ao carregar modelos: {e}")
-    print("Verifique se você rodou o notebook de exploração antes!")
+    print(f"Aviso: Modelo local não encontrado. {e}")
 
-# 2. CRIAR O APP FLASK
+# --- CRIAÇÃO DO APP FLASK ---
 app = Flask(__name__)
 
-# 3. DEFINIR AS ROTAS
-
-@app.route('/') # Rota raiz (http://localhost:5000/)
+@app.route('/')
 def home():
-    
-    return "A API do Roteirizador de Suporte está ONLINE! 🚀"
+    return "API do Roteirizador Inteligente (ML + GenAI) ONLINE! 🚀"
 
+# --- ROTA 1: ML CLÁSSICO ---
 @app.route('/prever-prioridade', methods=['POST'])
 def prever_prioridade():
-    # Passo A: Receber o JSON enviado pelo cliente
+    dados = request.get_json()
+    texto = dados.get('texto')
+    
+    if not texto: return jsonify({'erro': 'Sem texto'}), 400
+    
+    # Usando o modelo local
+    vetor = vetorizador.transform([texto])
+    previsao = modelo_prioridade.predict(vetor)[0]
+    
+    return jsonify({'prioridade_ml': previsao})
+
+# --- ROTA 2: GENAI / GEMINI ---
+@app.route('/analisar-ticket', methods=['POST'])
+def analisar_ticket():
     dados = request.get_json()
     texto_ticket = dados.get('texto')
 
-    if not texto_ticket:
-        return jsonify({'erro': 'Nenhum texto fornecido'}), 400
+    if not texto_ticket: return jsonify({'erro': 'Sem texto'}), 400
 
-    # Passo B: Traduzir o texto
-    
-    texto_vetorizado = vetorizador.transform([texto_ticket])
+    try:
+        # A. Definir o Modelo
+        model = genai.GenerativeModel('gemini-2.0-flash')
 
-    # Passo C: Usar o modelo para prever
-    previsao = modelo_prioridade.predict(texto_vetorizado)[0]
+        # B. Engenharia de Prompt
+        prompt = f"""
+        Você é um gerente de suporte técnico experiente.
+        Analise o seguinte ticket de suporte: "{texto_ticket}"
 
-    # Passo D: Devolver a resposta
-    return jsonify({
-        'texto_recebido': texto_ticket,
-        'prioridade_prevista': previsao
-    })
+        Faça duas coisas:
+        1. Resuma o problema em uma frase curta.
+        2. Classifique a categoria (ex: Financeiro, Técnico, Entrega, Acesso).
 
-# 4. RODAR O APP
+        Responda neste formato:
+        Resumo: [Seu resumo]
+        Categoria: [Sua categoria]
+        """
+
+        # C. Gerar a resposta
+        resposta = model.generate_content(prompt)
+
+        return jsonify({
+            'ticket_original': texto_ticket,
+            'analise_ia': resposta.text
+        })
+
+    except Exception as e:
+        return jsonify({'erro_ia': str(e)}), 500
+
 if __name__ == '__main__':
-    # debug=True faz o servidor reiniciar sozinho se você mudar o código
     app.run(host='0.0.0.0', port=5000, debug=True)

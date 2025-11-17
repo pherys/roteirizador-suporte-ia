@@ -1,15 +1,15 @@
-import requests # Biblioteca para fazer requisições (como um cliente)
+import requests
 
-url = 'http://127.0.0.1:5000/prever-prioridade'
 
-dados_teste = {
-    'texto': 'Meu sistema caiu e não consigo emitir notas fiscais! Urgente!'
+url = 'http://127.0.0.1:5000/analisar-ticket'
+
+
+ticket_br = {
+    'texto': 'Olá, tentei pagar meu pedido com PIX, o dinheiro saiu da conta mas o iFood diz que não foi pago. Quero meu estorno!'
 }
 
-# Enviando o pedido (POST)
-print("Enviando ticket para a IA...")
-resposta = requests.post(url, json=dados_teste)
+print("Enviando ticket para o Gemini analisar...")
+resposta = requests.post(url, json=ticket_br)
 
-# Mostrando a resposta da IA
-print("Status Code:", resposta.status_code)
-print("Resposta JSON:", resposta.json())
+print("\n--- RESPOSTA DA IA ---")
+print(resposta.json())

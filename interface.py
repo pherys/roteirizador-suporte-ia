@@ -1,58 +1,106 @@
 import streamlit as st
-import requests
+import joblib
+import os
+import google.generativeai as genai
+# A biblioteca dotenv é usada localmente. Na nuvem, usamos st.secrets.
+try:
+    from dotenv import load_dotenv
+except ImportError:
+    pass
 
-# Configuração da Página
-st.set_page_config(page_title="Roteirizador de Suporte Inteligente", page_icon="🤖")
+# --- CONFIGURAÇÃO DA PÁGINA ---
+st.set_page_config(page_title="Roteirizador de Suporte IA", page_icon="🤖")
+
+# --- CARREGAMENTO DE SEGREDOS E MODELOS (BACKEND EMBUTIDO) ---
+
+# 1. Configuração da Chave (Híbrida: Funciona no PC e na Nuvem)
+chave_google = None
+
+# Tenta pegar dos Segredos do Streamlit (Nuvem)
+try:
+    if "GEMINI_API_KEY" in st.secrets:
+        chave_google = st.secrets["GEMINI_API_KEY"]
+except FileNotFoundError:
+    # Se não houver arquivo de secrets (Ambiente Local), ignora o erro
+    pass
+except Exception:
+    pass
+
+# Se não achou nos secrets, tenta pegar do arquivo .env (PC Local)
+if not chave_google:
+    try:
+        load_dotenv()
+        chave_google = os.getenv("GEMINI_API_KEY")
+    except:
+        chave_google = None
+
+# Configurar o Gemini
+if chave_google:
+    genai.configure(api_key=chave_google)
+else:
+    st.warning("⚠️ Chave de API não encontrada. Configure o .env (Local) ou Secrets (Nuvem).")
+
+# 2. Carregar Modelos de ML (Com Cache para não travar o site)
+@st.cache_resource
+def carregar_modelos():
+    try:
+        # O Streamlit lê os arquivos direto do repositório
+        modelo = joblib.load('modelo_prioridade.pkl')
+        vetor = joblib.load('vetorizador.pkl')
+        return modelo, vetor
+    except Exception as e:
+        st.error(f"Erro ao carregar modelos .pkl: {e}")
+        return None, None
+
+modelo_prioridade, vetorizador = carregar_modelos()
+
+# --- INTERFACE (FRONTEND) ---
 
 st.title("🤖 Roteirizador de Suporte IA")
-st.markdown("Sistema inteligente para classificação e triagem de tickets do iFood.")
+st.markdown("Arquitetura: **Streamlit Native** (ML e LLM rodando localmente)")
 
-# Área de Entrada
 st.subheader("Novo Ticket")
-descricao_ticket = st.text_area("Descreva o problema do cliente:", height=150, placeholder="Ex: O cliente reclamou que a entrega atrasou e a comida chegou fria...")
+descricao_ticket = st.text_area(
+    "Descreva o problema:", 
+    height=150, 
+    placeholder="Ex: O cliente reclamou que a entrega atrasou..."
+)
 
-# Configuração da API (Apontando para o seu Docker)
-URL_API = "http://localhost:5000"
-
-# Botões de Ação
 col1, col2 = st.columns(2)
 
+# Botão 1: ML Clássico (Roda direto na memória do Streamlit)
 with col1:
-    if st.button("🔍 Prever Prioridade (ML Clássico)"):
+    if st.button("🔍 Prever Prioridade"):
         if descricao_ticket:
-            try:
-                # ROTA CORRIGIDA AQUI
-                response = requests.post(f"{URL_API}/prever-prioridade", json={"texto": descricao_ticket})
-                
-                if response.status_code == 200:
-                    dados = response.json()
-                    prioridade = dados.get('prioridade_ml', 'Desconhecida')
-                    st.success(f"Prioridade Prevista: {prioridade}")
-                else:
-                    st.error(f"Erro do Servidor: {response.status_code}")
-            except Exception as e:
-                st.error(f"Erro de conexão: {e}")
+            if modelo_prioridade and vetorizador:
+                vetor_input = vetorizador.transform([descricao_ticket])
+                previsao = modelo_prioridade.predict(vetor_input)[0]
+                st.success(f"Prioridade: {previsao}")
+            else:
+                st.error("Modelos não carregados.")
         else:
-            st.warning("Por favor, digite um ticket.")
+            st.warning("Digite um ticket.")
 
+# Botão 2: GenAI (Chama o Google direto do Streamlit)
 with col2:
-    if st.button("🧠 Análise Profunda (GenAI)"):
+    if st.button("🧠 Análise GenAI"):
         if descricao_ticket:
-            try:
-                with st.spinner('O Gemini está analisando...'):
-                    # ROTA CORRIGIDA AQUI
-                    response = requests.post(f"{URL_API}/analisar-ticket", json={"texto": descricao_ticket})
-                    
-                if response.status_code == 200:
-                    dados = response.json()
-                    st.markdown("### Análise da IA Generativa")
-                    st.write(dados.get('analise_ia', 'Sem resposta'))
-                else:
-                    st.error(f"Erro do Servidor: {response.status_code}")
-            except Exception as e:
-                st.error(f"Erro de conexão: {e}")
+            if chave_google:
+                try:
+                    with st.spinner('Consultando Gemini...'):
+                        model = genai.GenerativeModel('gemini-2.0-flash')
+                        prompt = f"""
+                        Analise este ticket de suporte: "{descricao_ticket}"
+                        1. Resumo curto.
+                        2. Categoria (Financeiro, Logística, etc).
+                        3. Sentimento (Positivo, Negativo, Neutro).
+                        """
+                        response = model.generate_content(prompt)
+                        st.markdown("### Resultado")
+                        st.write(response.text)
+                except Exception as e:
+                    st.error(f"Erro na API Google: {e}")
+            else:
+                st.error("Sem chave configurada.")
         else:
-            st.warning("Por favor, digite um ticket.")
-
-st.markdown("---")
-st.caption("Sistema rodando em Arquitetura de Microsserviços: Streamlit (Front) -> Docker (Back) -> Modelos/Gemini")
+            st.warning("Digite um ticket.")

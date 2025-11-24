@@ -1,128 +1,81 @@
-# 🤖 Roteirizador de Suporte Inteligente
+🤖 Roteirizador de Suporte Inteligente
 
-![Python](https://img.shields.io/badge/Python-3.9-blue?style=for-the-badge&logo=python&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker-Enabled-blue?style=for-the-badge&logo=docker&logoColor=white)
-![Streamlit](https://img.shields.io/badge/Frontend-Streamlit-red?style=for-the-badge&logo=streamlit&logoColor=white)
-![Gemini](https://img.shields.io/badge/AI-Gemini_2.0-orange?style=for-the-badge&logo=google&logoColor=white)
+Case de Estudo: Sistema de triagem inteligente aplicando Engenharia de Software e IA para otimizar o suporte ao cliente (focado no cenário iFood).
 
-> **Case de Estudo:** Sistema de triagem inteligente aplicando Engenharia de Software e MLOps para otimizar o suporte ao cliente (focado no cenário iFood).
+🌐 Demo Online
 
----
+👉 Clique aqui para testar o Roteirizador IA ao vivo
 
-## 📋 Sobre o Projeto
+O sistema está rodando na nuvem (Streamlit Cloud), processando tickets em tempo real com Machine Learning e Google Gemini.
 
-Este projeto resolve o problema de **triagem manual de tickets de suporte**. Ele utiliza uma abordagem híbrida de Inteligência Artificial para processar reclamações de clientes em tempo real:
+📋 Sobre o Projeto
 
-1.  **Classificação de Prioridade (Machine Learning Clássico):** Um modelo Scikit-Learn treinado prevê a urgência do ticket.
-2.  **Análise Semântica (Generative AI):** Integração com **Google Gemini** para resumir o problema e categorizar o ticket (ex: Financeiro, Logística, Qualidade).
-3.  **Interface de Operação:** Dashboard interativo em Streamlit para o time de atendimento.
+Este projeto resolve o problema de triagem manual de tickets de suporte. Ele utiliza uma abordagem híbrida de Inteligência Artificial:
 
----
+Classificação de Prioridade (Machine Learning Clássico): Um modelo Scikit-Learn treinado prevê a urgência do ticket.
 
-## 🛠️ Arquitetura
+Análise Semântica (Generative AI): Integração com Google Gemini para resumir o problema e categorizar o ticket (ex: Financeiro, Logística, Qualidade).
 
-O sistema foi desenhado seguindo a arquitetura de Microsserviços:
+Interface de Operação: Dashboard interativo em Streamlit para o time de atendimento.
 
-* **Frontend:** Streamlit (Consome a API).
-* **Backend:** Flask API (Expõe os modelos de ML e LLM).
-* **Containerização:** Docker (Garante reprodutibilidade).
+🛠️ Arquitetura
 
----
+O sistema utiliza uma arquitetura Streamlit Native para alta eficiência:
 
-## 🚀 Como Rodar o Projeto
+Frontend & Backend Unificados: O Streamlit gerencia tanto a interface quanto a execução dos modelos Python.
 
-Você pode rodar este projeto de duas formas: via **Docker** (recomendado) ou **Localmente** (Python).
+Gestão de Segredos Híbrida: Funciona localmente via .env e na nuvem via Streamlit Secrets.
 
-### Pré-requisitos
-* Git
-* Docker Desktop (para método Docker)
-* Python 3.9+ (para método Local)
-* Uma chave de API do Google Gemini (Gratuita no Google AI Studio)
+Containerização: O projeto mantém compatibilidade total com Docker para portabilidade.
 
-### 🔐 Passo 0: Configuração da Chave (Obrigatório)
+🚀 Como Rodar o Projeto (Para Desenvolvedores)
 
-Por segurança, as chaves de API não ficam no repositório.
-1.  Na raiz do projeto, crie um arquivo chamado `.env`.
-2.  Adicione sua chave do Gemini dentro dele:
-    ```env
-    GEMINI_API_KEY=sua_chave_aqui_sem_aspas
-    ```
+Se você quiser clonar e rodar na sua máquina, siga os passos abaixo:
 
----
+Pré-requisitos
 
-### 🐳 Opção A: Rodando com Docker (Recomendado)
+Git
 
-O jeito mais fácil. O Docker cuida de todas as instalações.
+Python 3.9+
 
-1.  **Construa a imagem:**
-    ```bash
-    docker build -t roteirizador-ia .
-    ```
+Uma chave de API do Google Gemini
 
-2.  **Rode o container:**
-    (Este comando conecta a porta 5000 e injeta sua chave de API)
-    ```bash
-    docker run -p 5000:5000 --env-file .env roteirizador-ia
-    ```
+🔐 Passo 0: Configuração
 
-3.  **Acesse a Interface:**
-    O Backend estará rodando. Para ver o Frontend, abra um novo terminal (com Python instalado) e rode:
-    ```bash
-    pip install streamlit requests
-    streamlit run interface.py
-    ```
+Clone o repositório.
 
----
+Crie um arquivo .env na raiz.
 
-### 🐍 Opção B: Rodando Localmente (Sem Docker)
+Adicione sua chave: GEMINI_API_KEY=sua_chave_aqui
 
-1.  **Crie e ative um ambiente virtual:**
-    ```bash
-    python -m venv .venv
-    # Windows:
-    .venv\Scripts\activate
-    # Linux/Mac:
-    source .venv/bin/activate
-    ```
+🐍 Opção A: Rodando Localmente
 
-2.  **Instale as dependências:**
-    ```bash
-    pip install -r requirements.txt
-    pip install streamlit requests
-    ```
+# 1. Instale as dependências
+pip install -r requirements.txt
 
-3.  **Inicie os serviços (Em dois terminais diferentes):**
+# 2. Execute o App
+streamlit run interface.py
 
-    * **Terminal 1 (Backend):**
-        ```bash
-        python app.py
-        ```
 
-    * **Terminal 2 (Frontend):**
-        ```bash
-        streamlit run interface.py
-        ```
+🐳 Opção B: Rodando via Docker
 
----
+# 1. Construa a imagem
+docker build -t roteirizador-ia .
 
-## 🧪 Como Testar
+# 2. Rode o container (passando as variáveis de ambiente)
+docker run -p 8501:8501 --env-file .env roteirizador-ia
 
-1.  Acesse o endereço local que o Streamlit mostrará (geralmente `http://localhost:8501`).
-2.  Digite um ticket de exemplo na caixa de texto.
-    * *Ex: "Meu pedido chegou revirado e frio, quero meu dinheiro de volta."*
-3.  Clique em **"Prever Prioridade"** para testar o modelo ML Local.
-4.  Clique em **"Análise Profunda"** para testar a integração com o Gemini.
 
----
+📂 Estrutura de Arquivos
 
-## 📂 Estrutura de Arquivos
+interface.py: Aplicação principal (Frontend + Lógica de IA).
 
-* `app.py`: Servidor API (Flask).
-* `interface.py`: Interface do Usuário (Streamlit).
-* `Dockerfile`: Receita de construção do container.
-* `exploracao.ipynb`: Notebook de treino e análise de dados.
-* `*.pkl`: Modelos de ML serializados.
+requirements.txt: Dependências do projeto.
 
----
+Dockerfile: Receita para containerização.
 
-Desenvolvido por **Fernanda Brito** como parte de estudos avançados em Engenharia de Computação e IA.
+exploracao.ipynb: Notebook de treino e análise de dados.
+
+*.pkl: Modelos de ML serializados (Vetorizador e Classificador).
+
+Desenvolvido por Fernanda Brito como parte de estudos avançados em Engenharia de Computação e IA.

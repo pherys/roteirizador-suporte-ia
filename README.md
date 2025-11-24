@@ -78,4 +78,4 @@ exploracao.ipynb: Notebook de treino e análise de dados.
 
 *.pkl: Modelos de ML serializados (Vetorizador e Classificador).
 
-Desenvolvido por Fernanda Brito como parte de estudos avançados em Engenharia de Computação e IA.
+Desenvolvido por Fernanda Brito como parte de estudos em Engenharia de Computação e IA.
